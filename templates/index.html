@@ -279,18 +279,78 @@
             }
         }
 
-        // Handle form submission animation
-        uploadForm.addEventListener('submit', () => {
+        // Handle form submission via AJAX
+        uploadForm.addEventListener('submit', async (e) => {
+            e.preventDefault(); // Prevent standard page reload
+            
             btnText.style.display = 'none';
             btnSpinner.style.display = 'block';
-            submitBtn.disabled = true; // Prevent double clicks
+            submitBtn.disabled = true; 
             
-            // Re-enable after a short delay so the user can download another file without reloading
-            setTimeout(() => {
-                btnText.style.display = 'block';
+            const formData = new FormData(uploadForm);
+            
+            try {
+                const response = await fetch('/redact', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Server error or invalid file');
+                }
+                
+                // Get the filename from Content-Disposition header if possible, else fallback
+                let filename = 'redacted_document.docx';
+                const disposition = response.headers.get('Content-Disposition');
+                if (disposition && disposition.indexOf('attachment') !== -1) {
+                    const filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
+                    const matches = filenameRegex.exec(disposition);
+                    if (matches != null && matches[1]) { 
+                        filename = matches[1].replace(/['"]/g, '');
+                    }
+                }
+
+                // Convert response to Blob
+                const blob = await response.blob();
+                const downloadUrl = window.URL.createObjectURL(blob);
+                
+                // Create or update the download button
+                let downloadBtn = document.getElementById('downloadBtn');
+                if (!downloadBtn) {
+                    downloadBtn = document.createElement('a');
+                    downloadBtn.id = 'downloadBtn';
+                    downloadBtn.className = 'btn-upload';
+                    downloadBtn.style.background = '#10b981'; // Green color for success
+                    downloadBtn.style.marginTop = '1rem';
+                    downloadBtn.style.textDecoration = 'none';
+                    downloadBtn.style.display = 'inline-block';
+                    uploadForm.appendChild(downloadBtn);
+                }
+                
+                downloadBtn.href = downloadUrl;
+                downloadBtn.download = filename;
+                downloadBtn.textContent = '⬇️ Download Redacted Document';
+                
+                // Keep the original button disabled but change text to indicate success
                 btnSpinner.style.display = 'none';
+                btnText.textContent = 'Success!';
+                btnText.style.display = 'block';
+                submitBtn.style.background = '#475569';
+                
+            } catch (error) {
+                console.error('Upload failed:', error);
+                btnSpinner.style.display = 'none';
+                
+                if (error.message.includes('504') || error.message.includes('502') || error.message.includes('Server error')) {
+                    btnText.textContent = 'Timeout! Process took too long.';
+                } else {
+                    btnText.textContent = 'Error! Try Again';
+                }
+                
+                btnText.style.display = 'block';
                 submitBtn.disabled = false;
-            }, 3000); 
+                submitBtn.style.background = '#ef4444';
+            }
         });
     </script>
 </body>

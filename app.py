@@ -48,7 +48,15 @@ def redact_file():
         
         try:
             # Run our redaction pipeline
-            run_pipeline(input_path, output_path, detections_path, dry_run=False)
+            from redact import ALL_CATEGORIES
+            run_pipeline(
+                input_path=input_path, 
+                output_path=output_path, 
+                seed=42, 
+                dry_run=False, 
+                categories=ALL_CATEGORIES, 
+                detections_path=detections_path
+            )
             
             # Send the redacted file back to the user
             return send_file(
