@@ -1,0 +1,19 @@
+# Python caches
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Virtual environment
+venv/
+env/
+.env
+
+# Project specific
+data/input/*
+data/output/*
+!data/input/.gitkeep
+!data/output/.gitkeep
+ground_truth.json
+
+
